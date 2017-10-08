@@ -9,11 +9,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 
-cap = cv2.VideoCapture('2017-09-14 21.53.59.mp4')
+cap = cv2.VideoCapture('demo/demo-video.avi')
 
-#if not cap.isOpened(): 
-#    print("No lo pude abrir")
-#    return
+if not cap.isOpened():
+    print("No lo pude abrir")
+
+
+flag, frame = cap.read()
 
 length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
