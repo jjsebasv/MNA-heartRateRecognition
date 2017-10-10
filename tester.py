@@ -3,18 +3,18 @@
 from utils import *
 
 def main():
-    y = np.exp(2j * np.pi * np.arange(20) / 20)
-    #y = np.random.random(1024)
-    original = np.fft.fft(y)
+    y = np.exp(-2j * np.pi * np.arange(1024)/ 1024)
+    y = np.random.random(1024)
+    print(y)
 
-    #dft = calculate_fft(y)
-    recursive = calculate_fft(y, 'recursive')
-    #iterative = calculate_fft(y, 'iterative')
+    original_fft = np.fft.fft(y)
 
-    #print(np.allclose(original, dft))
+    #fft = calculate_fft(y, 'iterative')
+    ifft = calculate_ifft(original_fft)
+    print(ifft)
 
-    print(np.allclose(original, recursive))
-    #print(np.allclose(original, iterative))
+    #print(np.allclose(original_fft, fft))
+    print(np.allclose(y, ifft))
 
 
 
