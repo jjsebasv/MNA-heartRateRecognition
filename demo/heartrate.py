@@ -11,10 +11,10 @@ import cv2
 
 
 def main():
-    cap = cv2.VideoCapture('demo-video.mp4')
-    # if not cap.isOpened():
-    #    print("No lo pude abrir")
-    #    return
+    cap = cv2.VideoCapture('/Users/heyimnowi/Documents/ITBA/MNA-heartRateRecognition/demo/demo-video.mp4')
+    if not cap.isOpened():
+       print("No lo pude abrir")
+       return
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -25,14 +25,24 @@ def main():
     b = np.zeros((1, length))
 
     k = 0
+    radius = 30
     while (cap.isOpened()):
         ret, frame = cap.read()
 
         if ret == True:
-            r[0, k] = np.mean(frame[330:360, 610:640, 0])
-            g[0, k] = np.mean(frame[330:360, 610:640, 1])
-            b[0, k] = np.mean(frame[330:360, 610:640, 2])
-        # print(k)
+            if k == 0:
+                # Display the resulting frame
+                orig = frame.copy()
+                gray = cv2.cvtColor(orig, cv2.COLOR_BGR2GRAY)
+                # the area of the image with the largest intensity value
+                (minVal, maxVal, minLoc, maxLoc) = cv2.minMaxLoc(gray)
+
+            # Crop frame
+            frame = frame[maxLoc[0] - radius : maxLoc[0] + radius, maxLoc[1] - radius : maxLoc[1] + radius, 0]
+
+            r[0, k] = np.mean(frame)
+            g[0, k] = np.mean(frame)
+            b[0, k] = np.mean(frame)
         else:
             break
         k = k + 1
@@ -61,7 +71,7 @@ def main():
     plt.plot(60 * f, B)
     plt.xlim(0, 200)
 
-    plt.show()
+    #plt.show()
     print("Frecuencia cardíaca: ", abs(f[np.argmax(G)]) * 60, " pulsaciones por minuto")
 
 
