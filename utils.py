@@ -133,7 +133,7 @@ def calculate_ifft(y, method=''):
     else:
         print("*** IDFT calculation ***")
         ans = calculate_idft(y)
-    return (1/N)*ans
+    return (1 / N) * ans
 
 
 def get_time():
