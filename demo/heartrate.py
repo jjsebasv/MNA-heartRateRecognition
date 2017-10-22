@@ -112,7 +112,7 @@ def main():
             # g[0, k] = np.mean(frame[:, : 1])
             # b[0, k] = np.mean(frame[:, :, 2])
 
-            print("%g%%" % (k / length * 100.))
+            print("%g \%" % (k / length * 100.), end='\r')
         else:
             break
         k = k + 1
@@ -180,9 +180,8 @@ def main():
     # plt.plot(60 * f, CR)
     # plt.xlim(0, 200)
 
+    print("Frecuencia cardíaca: %s  pulsaciones por minuto" % (abs(f[np.argmax(transformed_data[0])]) * 60))
     plt.show()
-    print("Frecuencia cardíaca (Senal original): ", abs(f[np.argmax(transformed_data[0])]) * 60,
-          " pulsaciones por minuto")
     # print("Frecuencia cardíaca (Senal filtrada): ", abs(f[np.argmax(filtered_data[0])]) * 60, " pulsaciones por minuto")
 
 
