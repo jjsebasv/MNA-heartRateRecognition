@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
 
+fft_func = np.fft.fft
+
 
 # Filtro pasabanda obtenido de https://scipy.github.io/old-wiki/pages/Cookbook/ButterworthBandpass
 def butter_bandpass(lowcut, highcut, fs, order=5):
@@ -68,13 +70,6 @@ def main():
         type=int
     )
 
-    parser.add_argument(
-        '--plot',
-        help='Datos a graficar',
-        default="data",
-        choices=['data', 'freq']
-    )
-
     args = parser.parse_args()
 
     if not args.video or not os.path.exists(args.video) or not os.path.isfile(args.video):
@@ -82,9 +77,7 @@ def main():
         return
 
     cap = cv2.VideoCapture(args.video)
-    # if not cap.isOpened():
-    #    print("No lo pude abrir")
-    #    return
+
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -112,7 +105,7 @@ def main():
             # g[0, k] = np.mean(frame[:, : 1])
             # b[0, k] = np.mean(frame[:, :, 2])
 
-            print("%g %%" % (k / length * 100.), end='\r')
+            print("%g" % (k / length * 100.), end='\r')
         else:
             break
         k = k + 1
@@ -131,58 +124,36 @@ def main():
 
         if args.filter:
             filtered_data[i] = butter_bandpass_filter(data[i], args.lowfreq, args.highfreq, fps * 60)
-            transformed_data[i] = np.abs(np.fft.fftshift(np.fft.fft(filtered_data[i]))) ** 2
+            transformed_data[i] = np.abs(np.fft.fftshift(fft_func(filtered_data[i]))) ** 2
         else:
-            transformed_data[i] = np.abs(np.fft.fftshift(np.fft.fft(data[i]))) ** 2
+            transformed_data[i] = np.abs(np.fft.fftshift(fft_func(data[i]))) ** 2
 
-    # R = np.abs(np.fft.fftshift(np.fft.fft(r))) ** 2
-    # G = np.abs(np.fft.fftshift(np.fft.fft(g))) ** 2
-    # B = np.abs(np.fft.fftshift(np.fft.fft(b))) ** 2
-    # Y = np.abs(np.fft.fftshift(np.fft.fft(y))) ** 2
-    # # Y = np.abs(np.fft.fftshift(iterative_fft(yp))) ** 2
-    # Yp = np.abs(np.fft.fftshift(np.fft.fft(yp))) ** 2
-    # CB = np.abs(np.fft.fftshift(np.fft.fft(cb))) ** 2
-    # CR = np.abs(np.fft.fftshift(np.fft.fft(cr))) ** 2
-    # Y[0:30] = 0
+    plt.figure(1)
+    plt.clf()
+
+    plt.plot(data[0], label='Senal original')
+
+    if args.filter:
+        plt.plot(filtered_data[0], label="Senal filtrada")
+
+    plt.legend(loc='best')
+    plt.figure(2)
+    plt.clf()
+
+    if args.channel == 'rgb':
+        channels = ['R', 'G', 'B']
+    elif args.channel == 'ycbcr':
+        channels = ['Y', 'Cb', 'Cr']
+
     plt.xlabel("frecuencia [1/minuto]")
+    for i in range(0, 3):
+        plt.plot(60 * f, transformed_data[i], label=channels[i])
 
-    # plt.plot(60 * f, R)
-    # plt.xlim(0, 200)
-
-    # plt.plot(60 * f, R)
-    # plt.xlim(0, 200)
-    # # plt.legend("G")
-
-    # plt.plot(60 * f, B)
-    # plt.xlim(0, 200)
-
-    # plt.plot(60 * f, Y)
-    # plt.plot(60 * f, Yp)
-    # plt.xlim(0, 200)
-
-    if args.plot == 'data':
-        plt.plot(data[0], label='Senal original')
-
-        if args.filter:
-            plt.plot(filtered_data[0], label="Senal filtrada")
-
-    elif args.plot == 'fft':
-        plt.plot(60 * f, transformed_data[0])
-        plt.plot(60 * f, transformed_data[1])
-        plt.plot(60 * f, transformed_data[2])
-        plt.xlim(0, 200)
-
-    # # plt.legend("Y")
-
-    # plt.plot(60 * f, CB)
-    # plt.xlim(0, 200)
-
-    # plt.plot(60 * f, CR)
-    # plt.xlim(0, 200)
+    plt.xlim(0, 200)
+    plt.legend(loc='best')
 
     print("Frecuencia cardíaca: %s  pulsaciones por minuto" % (abs(f[np.argmax(transformed_data[0])]) * 60))
     plt.show()
-    # print("Frecuencia cardíaca (Senal filtrada): ", abs(f[np.argmax(filtered_data[0])]) * 60, " pulsaciones por minuto")
 
 
 if __name__ == "__main__":
