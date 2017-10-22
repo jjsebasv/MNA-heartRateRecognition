@@ -112,7 +112,7 @@ def main():
             # g[0, k] = np.mean(frame[:, : 1])
             # b[0, k] = np.mean(frame[:, :, 2])
 
-            print("%g \%" % (k / length * 100.), end='\r')
+            print("%g %%" % (k / length * 100.), end='\r')
         else:
             break
         k = k + 1
