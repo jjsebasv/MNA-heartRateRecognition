@@ -1,17 +1,18 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sat Sep 16 19:23:10 2017
+#!/usr/bin/python3
 
-@author: pfierens
-"""
 
-import numpy as np
-import matplotlib.pyplot as plt
-import cv2
 import argparse
+import os
+
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
 from scipy import signal
 
+fft_func = np.fft.fft
 
+
+# Filtro pasabanda obtenido de https://scipy.github.io/old-wiki/pages/Cookbook/ButterworthBandpass
 def butter_bandpass(lowcut, highcut, fs, order=5):
     nyq = 0.5 * fs
     low = lowcut / nyq
@@ -34,54 +35,77 @@ def rgb2ycbcr(im):
 
 
 def main():
-    # parser = argparse.ArgumentParser()
-    #
-    # parser.add_argument(
-    #     '--video',
-    #     help="Path of video file"
-    # )
-    #
-    # parser.add_argument(
-    #     '--channel',
-    #     help='Color channel',
-    #     default="rgb",
-    #     choices=['rgb', 'ycbcr']
-    # )
+    parser = argparse.ArgumentParser()
 
-    cap = cv2.VideoCapture('20171022_151444.mp4')
-    # if not cap.isOpened():
-    #    print("No lo pude abrir")
-    #    return
+    parser.add_argument(
+        '--video',
+        help="Ruta del archivo de video",
+        required=True
+    )
+
+    parser.add_argument(
+        '--channel',
+        help='Color channel',
+        default="rgb",
+        choices=['rgb', 'ycbcr']
+    )
+
+    parser.add_argument(
+        '--filter',
+        help="Aplicar un filtro pasabanda",
+        action='store_true'
+    )
+
+    parser.add_argument(
+        '--lowfreq',
+        help="Frecuencia minima del filtro",
+        default=20,
+        type=int
+    )
+
+    parser.add_argument(
+        '--highfreq',
+        help="Frecuencia maxima del filtro",
+        default=200,
+        type=int
+    )
+
+    args = parser.parse_args()
+
+    if not args.video or not os.path.exists(args.video) or not os.path.isfile(args.video):
+        print("Archivo de video no encontrado: %s" % args.video)
+        return
+
+    cap = cv2.VideoCapture(args.video)
+
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
 
-    r = np.zeros((1, length))
-    g = np.zeros((1, length))
-    b = np.zeros((1, length))
-    y = np.zeros((1, length))
-    cb = np.zeros((1, length))
-    cr = np.zeros((1, length))
+    data = [np.zeros((1, length)), np.zeros((1, length)), np.zeros((1, length))]
 
     k = 0
-    while (cap.isOpened()):
+    while cap.isOpened():
         ret, frame = cap.read()
 
-        if ret == True:
-            r[0, k] = np.mean(frame[200:450, 490:670, 0])
-            g[0, k] = np.mean(frame[200:450, 490:670, 1])
-            b[0, k] = np.mean(frame[200:450, 490:670, 2])
+        if ret:
+
+            if args.channel == 'rgb':
+                data[0][0, k] = np.mean(frame[200:450, 490:670, 0])
+                data[1][0, k] = np.mean(frame[200:450, 490:670, 1])
+                data[2][0, k] = np.mean(frame[200:450, 490:670, 2])
+            elif args.channel == 'ycbcr':
+                im = rgb2ycbcr(frame[200:450, 490:670, :])
+                data[0][0, k] = np.mean(im[:, :, 0])
+                data[1][0, k] = np.mean(im[:, :, 0])
+                data[2][0, k] = np.mean(im[:, :, 0])
 
             # r[0, k] = np.mean(frame[:, :, 0])
             # g[0, k] = np.mean(frame[:, : 1])
             # b[0, k] = np.mean(frame[:, :, 2])
 
-            im = rgb2ycbcr(frame[200:450, 490:670, :])
-            y[0, k] = np.mean(im[:, :, 0])
-            # cb[0, k] = np.mean(im[:, :, 0])
-            # cr[0, k] = np.mean(im[:, :, 0])
-            print("%g%%" % (k / length * 100.))
+            print("%g" % (k / length * 100.), end='\r')
         else:
             break
         k = k + 1
@@ -92,49 +116,44 @@ def main():
     n = 1024
     f = np.linspace(-n / 2, n / 2 - 1, n) * fps / n
 
-    r = r[0, 0:n] - np.mean(r[0, 0:n])
-    g = g[0, 0:n] - np.mean(g[0, 0:n])
-    b = b[0, 0:n] - np.mean(b[0, 0:n])
-    y = y[0, 0:n] - np.mean(y[0, 0:n])
-    cb = cb[0, 0:n] - np.mean(cb[0, 0:n])
-    cr = cr[0, 0:n] - np.mean(cr[0, 0:n])
+    filtered_data = [0, 0, 0]
+    transformed_data = [0, 0, 0]
 
-    yp = butter_bandpass_filter(y, 20, 180, fps*60)
+    for i in range(0, 3):
+        data[i] = data[i][0, 0:n] - np.mean(data[i][0, 0:n])
 
-    R = np.abs(np.fft.fftshift(np.fft.fft(r))) ** 2
-    G = np.abs(np.fft.fftshift(np.fft.fft(g))) ** 2
-    B = np.abs(np.fft.fftshift(np.fft.fft(b))) ** 2
-    Y = np.abs(np.fft.fftshift(np.fft.fft(y))) ** 2
-    Yp = np.abs(np.fft.fftshift(np.fft.fft(yp))) ** 2
-    CB = np.abs(np.fft.fftshift(np.fft.fft(cb))) ** 2
-    CR = np.abs(np.fft.fftshift(np.fft.fft(cr))) ** 2
-    # Y[0:30] = 0
+        if args.filter:
+            filtered_data[i] = butter_bandpass_filter(data[i], args.lowfreq, args.highfreq, fps * 60)
+            transformed_data[i] = np.abs(np.fft.fftshift(fft_func(filtered_data[i]))) ** 2
+        else:
+            transformed_data[i] = np.abs(np.fft.fftshift(fft_func(data[i]))) ** 2
+
+    plt.figure(1)
+    plt.clf()
+
+    plt.plot(data[0], label='Senal original')
+
+    if args.filter:
+        plt.plot(filtered_data[0], label="Senal filtrada")
+
+    plt.legend(loc='best')
+    plt.figure(2)
+    plt.clf()
+
+    if args.channel == 'rgb':
+        channels = ['R', 'G', 'B']
+    elif args.channel == 'ycbcr':
+        channels = ['Y', 'Cb', 'Cr']
+
     plt.xlabel("frecuencia [1/minuto]")
+    for i in range(0, 3):
+        plt.plot(60 * f, transformed_data[i], label=channels[i])
 
-    # plt.plot(60 * f, R)
-    # plt.xlim(0, 200)
-
-    # plt.plot(60 * f, R)
-    # plt.xlim(0, 200)
-    # # plt.legend("G")
-
-    # plt.plot(60 * f, B)
-    # plt.xlim(0, 200)
-
-    plt.plot(60 * f, Y)
-    plt.plot(60 * f, Yp)
     plt.xlim(0, 200)
-    # # plt.legend("Y")
+    plt.legend(loc='best')
 
-    # plt.plot(60 * f, CB)
-    # plt.xlim(0, 200)
-
-    # plt.plot(60 * f, CR)
-    # plt.xlim(0, 200)
-
+    print("Frecuencia cardíaca: %s  pulsaciones por minuto" % (abs(f[np.argmax(transformed_data[0])]) * 60))
     plt.show()
-    print("Frecuencia cardíaca (Y): ", abs(f[np.argmax(Y)]) * 60, " pulsaciones por minuto")
-    print("Frecuencia cardíaca (Yp): ", abs(f[np.argmax(Yp)]) * 60, " pulsaciones por minuto")
 
 
 if __name__ == "__main__":

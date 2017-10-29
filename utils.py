@@ -60,7 +60,7 @@ def calculate_dft(y):
     return np.dot(M, y)
 
 
-def calculate_fft(y, method=''):
+def calculate_fft(y, method='iterative'):
     N = len(y)
 
     if method == 'iterative' and np.log2(N) % 1 <= 0:
