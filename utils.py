@@ -10,9 +10,9 @@ import time
 
 def iterative_fft(y):
     N = y.shape[0]
-    N_min = min(N, 32)
+    N_min = min(N, 1)
 
-    # Hace dft de a N_min todos juntos
+    # Caso base
     n = np.arange(N_min)
     k = n[:, None]
     M = np.exp(-2j * np.pi * n * k / N_min)
